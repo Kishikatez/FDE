@@ -1,0 +1,60 @@
+{
+  "excludeDirectories": {
+    "_computed": {
+      "excludeGlob": "**/{node_modules,bower_components,jspm_packages,vendor,packages,site-packages,dist-packages,eggs,.eggs,__pycache__,.cache,.pytest_cache,.mypy_cache,.ruff_cache,.hypothesis,coverage,htmlcov,.nyc_output,.coverage,.git,.hg,.svn,.idea,.vs,.vscode,.aspect,generated,__generated__,.serverless,.terraform,.pulumi,.next,.nuxt,.output,.turbo,.parcel-cache,venv,.venv,.tox,.nox}/**",
+      "excludedDirs": [
+        "node_modules",
+        "bower_components",
+        "jspm_packages",
+        "vendor",
+        "packages",
+        "site-packages",
+        "dist-packages",
+        "eggs",
+        ".eggs",
+        "__pycache__",
+        ".cache",
+        ".pytest_cache",
+        ".mypy_cache",
+        ".ruff_cache",
+        ".hypothesis",
+        "coverage",
+        "htmlcov",
+        ".nyc_output",
+        ".coverage",
+        ".git",
+        ".hg",
+        ".svn",
+        ".idea",
+        ".vs",
+        ".vscode",
+        ".aspect",
+        "generated",
+        "__generated__",
+        ".serverless",
+        ".terraform",
+        ".pulumi",
+        ".next",
+        ".nuxt",
+        ".output",
+        ".turbo",
+        ".parcel-cache",
+        "venv",
+        ".venv",
+        ".tox",
+        ".nox"
+      ],
+      "computedAt": 1789794157624
+    },
+    "auto": true,
+    "alwaysExclude": [],
+    "neverExclude": []
+  },
+  "gitignore": {},
+  "assistants": {
+    "copilot": true,
+    "cursor": false,
+    "claude": false,
+    "other": false
+  }
+}
