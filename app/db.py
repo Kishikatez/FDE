@@ -37,8 +37,16 @@ def claims_collection() -> Collection[Any]:
 
 
 def ensure_indexes() -> None:
-    """Create indexes required by claim lookup and duplicate protection."""
+    """Create collections and indexes required by the application."""
 
+    database = get_database()
+    existing_collections = set(database.list_collection_names())
+    if "users" not in existing_collections:
+        database.create_collection("users")
+    if "claims" not in existing_collections:
+        database.create_collection("claims")
+
+    users_collection().create_index([("email", ASCENDING)], unique=True, name="users_email_unique")
     claims = claims_collection()
     claims.create_index([("status", ASCENDING)], name="claims_status")
     claims.create_index(
@@ -50,7 +58,7 @@ def ensure_indexes() -> None:
         name="claims_strong_fingerprint",
         unique=True,
         partialFilterExpression={
-            "status": {"$ne": "rejected"},
-            "fingerprint": {"$type": "string", "$ne": ""},
+            "status": {"$in": ["draft", "submitted", "approved", "paid"]},
+            "fingerprint": {"$type": "string", "$gt": ""},
         },
     )

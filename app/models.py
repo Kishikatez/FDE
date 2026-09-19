@@ -10,6 +10,7 @@ class UserRole(StrEnum):
     STAFF = "staff"
     MANAGER = "manager"
     FINANCE = "finance"
+    ADMIN = "admin"
 
 
 class ClaimCategory(StrEnum):
@@ -38,9 +39,11 @@ class User(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     email: str = Field(min_length=3, max_length=254)
     role: UserRole
+    designation: str = Field(default="Employee", min_length=1, max_length=120)
     manager_id: str | None = None
     monthly_limit_paise: int = Field(ge=0)
     active: bool = True
+    password_hash: str | None = None
 
 
 class StatusHistoryEntry(BaseModel):
