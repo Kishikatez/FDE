@@ -22,4 +22,4 @@ _Server handlers, API routes, application entry._
 | `app/` | 5 | General |
 
 
-_Generated: 2026-09-19T05:08:54.436Z_
+_Generated: 2026-09-19T05:10:38.240Z_

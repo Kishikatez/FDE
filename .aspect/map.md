@@ -46,4 +46,4 @@ _Naming patterns and styles. Follow these for consistency._
 - `get_*` → `get_settings` (3 occurrences)
 
 
-_Generated: 2026-09-19T05:08:54.472Z_
+_Generated: 2026-09-19T05:10:38.265Z_

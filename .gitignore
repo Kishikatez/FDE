@@ -4,3 +4,6 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 *.py[cod]
+
+# Aspect Code (local AI context)
+.aspect/

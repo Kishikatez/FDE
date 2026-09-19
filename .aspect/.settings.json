@@ -50,7 +50,9 @@
     "alwaysExclude": [],
     "neverExclude": []
   },
-  "gitignore": {},
+  "gitignore": {
+    ".aspect/": true
+  },
   "assistants": {
     "copilot": true,
     "cursor": false,
