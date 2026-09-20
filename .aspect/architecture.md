@@ -2,7 +2,7 @@
 
 _Read this first. Describes the project layout and "Do Not Break" zones._
 
-**Files:** 24 | **Dependencies:** 34 | **Cycles:** 0
+**Files:** 23 | **Dependencies:** 34 | **Cycles:** 0
 
 ## ⚠️ High-Risk Architectural Hubs
 
@@ -65,7 +65,7 @@ _Where code execution begins. Categorized by type with detection confidence._
 
 _Server handlers, API routes, application entry._
 
-- 🟢 `app/routes/web.py`: FastAPI (21 routes)
+- 🟢 `app/routes/web.py`: FastAPI (25 routes)
 - 🟢 `app/main.py`: FastAPI (1 routes)
 
 ### Runnable Scripts / Tooling
@@ -90,4 +90,4 @@ _CLI tools, build scripts, standalone utilities._
 **Test files:** 3 | **Dirs:** tests
 
 
-_Generated: 2026-09-19T09:39:19.183Z_
+_Generated: 2026-09-20T17:03:42.004Z_

@@ -1,3 +1,238 @@
 {% extends "base.html" %}
 {% block title %}New claim | Expense Claims{% endblock %}
-{% block content %}<section class="intro"><p class="eyebrow">Receipt intake</p><h1>Upload every bill in one go.</h1><p>PDFs and images are read separately, then shown in one editable review table before anything reaches your manager.</p></section>{% if error %}<p class="error">{{ error }}</p>{% endif %}<form method="post" action="/claims/parse-batch" enctype="multipart/form-data" class="ledger-form"><input type="hidden" name="csrf_token" value="{{ csrf }}"><label for="files">Receipt files<input id="files" name="files" type="file" accept=".pdf,.jpg,.jpeg,.png" multiple required></label><button class="button" type="submit">Process bills</button></form><p class="muted">You can also paste one receipt:</p><form method="post" action="/claims/parse" class="ledger-form"><input type="hidden" name="csrf_token" value="{{ csrf }}"><textarea name="receipt_text" rows="7" placeholder="Paste the receipt text here"></textarea><button class="button" type="submit">Extract pasted receipt</button></form>{% endblock %}
+{% block content %}
+<style>
+  .claim-form {
+    width: 100%;
+    max-width: 1040px;
+    display: grid;
+    gap: 30px;
+  }
+  .upload-first-form {
+    margin: 34px 0 54px;
+  }
+  .receipt-upload-panel {
+    display: grid;
+    grid-template-columns: minmax(260px, 1fr) minmax(280px, 390px) auto;
+    gap: 32px;
+    align-items: center;
+    padding: 30px;
+    border: 1px solid var(--ink);
+    background: rgba(255, 255, 255, .24);
+  }
+  .receipt-upload-panel h2 {
+    margin: 0 0 12px;
+    font-size: clamp(1.8rem, 3vw, 2.5rem);
+    line-height: 1;
+  }
+  .receipt-upload-panel .muted {
+    max-width: 450px;
+    line-height: 1.45;
+  }
+  .upload-dropzone {
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+    min-height: 160px;
+    padding: 24px;
+    border: 1px dashed var(--accent);
+    background: rgba(255, 255, 255, .35);
+    text-align: center;
+    cursor: pointer;
+  }
+  .upload-dropzone strong,
+  .button,
+  .button-secondary {
+    font-weight: 600;
+  }
+  .upload-dropzone strong {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    text-transform: uppercase;
+  }
+  .upload-dropzone span:last-of-type {
+    color: var(--muted);
+    font-size: 15px;
+  }
+  .manual-claim-form {
+    padding-top: 34px;
+    border-top: 1px solid var(--rule);
+  }
+  .employee-section,
+  .manual-section {
+    display: grid;
+    gap: 18px;
+  }
+  .employee-row,
+  .claim-fields {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 22px;
+    align-items: start;
+  }
+  .claim-fields {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    row-gap: 24px;
+  }
+  .field-block {
+    display: grid;
+    gap: 9px;
+    min-width: 0;
+  }
+  .field-block input {
+    width: 100%;
+    min-height: 50px;
+    padding: 12px 14px;
+    border: 1px solid var(--rule);
+    background: rgba(255, 255, 255, .3);
+    color: var(--ink);
+    font: 18px Newsreader, Georgia, serif;
+  }
+  .field-block input:focus {
+    border-color: var(--accent);
+    outline: 3px solid rgba(184, 67, 47, .14);
+    outline-offset: 0;
+  }
+  .field-block input[readonly] {
+    color: var(--muted);
+    background: rgba(255, 255, 255, .16);
+  }
+  .category-block {
+    display: grid;
+    gap: 12px;
+    margin-top: 4px;
+  }
+  .category-heading,
+  .employee-section > .eyebrow,
+  .manual-section > .eyebrow {
+    font-weight: 600;
+  }
+  .category-picker {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(90px, 1fr));
+    gap: 14px;
+  }
+  .category-option {
+    display: grid;
+    justify-items: center;
+    gap: 11px;
+    min-height: 116px;
+    padding: 17px 9px 14px;
+    border: 1px solid var(--rule);
+    background: rgba(255, 255, 255, .22);
+    cursor: pointer;
+    text-align: center;
+    transition: border-color .18s ease, background .18s ease, transform .18s ease;
+  }
+  .category-option:hover,
+  .category-option.is-selected,
+  .category-option:has(input:checked) {
+    border-color: var(--ink);
+    background: rgba(255, 255, 255, .62);
+    transform: translateY(-2px);
+  }
+  .category-option.is-selected {
+    outline: 2px solid var(--accent);
+    outline-offset: -6px;
+  }
+  .category-option:has(input:checked) {
+    outline: 2px solid var(--accent);
+    outline-offset: -6px;
+  }
+  .category-option input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .category-icon {
+    width: 38px;
+    height: 38px;
+    border: 1px solid var(--ink);
+    border-radius: 10px;
+    background: rgba(184, 67, 47, .18);
+    box-shadow: inset 0 0 0 5px var(--paper);
+  }
+  .manual-actions {
+    display: flex;
+    align-items: end;
+    gap: 24px;
+    padding-top: 4px;
+  }
+  .note-field {
+    flex: 1;
+  }
+  .manual-actions .button {
+    min-height: 50px;
+    padding-inline: 24px;
+  }
+  @media (max-width: 900px) {
+    .receipt-upload-panel {
+      grid-template-columns: 1fr 1fr;
+    }
+    .receipt-upload-panel > div {
+      grid-column: 1 / -1;
+    }
+    .claim-fields {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .category-picker {
+      grid-template-columns: repeat(3, minmax(90px, 1fr));
+    }
+  }
+  @media (max-width: 600px) {
+    .receipt-upload-panel {
+      grid-template-columns: 1fr;
+      padding: 22px;
+    }
+    .receipt-upload-panel > div {
+      grid-column: auto;
+    }
+    .employee-row,
+    .claim-fields {
+      grid-template-columns: 1fr;
+    }
+    .category-picker {
+      grid-template-columns: repeat(2, minmax(90px, 1fr));
+    }
+    .manual-actions {
+      display: grid;
+      align-items: stretch;
+    }
+    .manual-actions .button {
+      width: 100%;
+    }
+  }
+</style>
+<section class="intro"><p class="eyebrow">Expense claim</p><h1>Submit a new claim.</h1><p>Upload a bill first, or complete the form manually. Extracted details remain editable before you send the claim for approval.</p></section>
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+<form method="post" action="/claims/new" enctype="multipart/form-data" class="claim-form upload-first-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}">
+  <section class="receipt-upload-panel">
+    <div><p class="eyebrow">Optional receipt scan</p><h2>Start with a bill</h2><p class="muted">We will fill the fields below when the receipt contains the information. Anything unknown stays ready for you to complete.</p></div>
+    <label for="files" class="upload-dropzone"><span class="upload-symbol" aria-hidden="true">+</span><strong>Choose a bill to extract</strong><span>PDF, JPG, JPEG, or PNG</span><input id="files" name="files" type="file" accept=".pdf,.jpg,.jpeg,.png"></label>
+    <button class="button button-secondary" type="submit">Read bill</button>
+  </section>
+</form>
+
+<form method="post" action="/claims/confirm" class="claim-form manual-claim-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}">
+  <input type="hidden" name="receipt_text" value="{{ receipt_text or '' }}">
+  <section class="employee-section"><p class="eyebrow">Employee details</p><div class="employee-row">
+    <label class="field-block">Name<input value="{{ user_profile.name }}" readonly></label>
+    <label class="field-block">Employee ID<input value="{{ user_profile.id }}" readonly></label>
+    <label class="field-block">Email<input value="{{ user_profile.email }}" readonly></label>
+  </div></section>
+
+  <section class="manual-section"><p class="eyebrow">Claim details</p><div class="claim-fields">
+    <label class="field-block">Merchant<input name="merchant" value="{{ draft.merchant if draft else '' }}" required></label>
+    <label class="field-block">Amount (rupees)<input name="amount_rupees" type="number" min="0.01" step="0.01" value="{{ '%.2f'|format(draft.amount_paise / 100) if draft else '' }}" required></label>
+    <label class="field-block">Expense date<input name="expense_date" type="date" value="{{ draft.expense_date.isoformat() if draft else '' }}" required></label>
+    <label class="field-block">Receipt number<input name="receipt_no" value="{{ draft.receipt_no if draft and draft.receipt_no else '' }}"></label>
+  </div>
+  <div class="category-block"><label class="category-heading">Expense type</label><div class="category-picker" aria-label="Claim category">
+    {% for category in categories or [] %}<label class="category-option {% if draft and draft.category == category %}is-selected{% endif %}"><input type="radio" name="category" value="{{ category.value }}" {% if draft and draft.category == category %}checked{% endif %} required><span class="category-icon" aria-hidden="true"></span><span>{{ category.value }}</span></label>{% endfor %}
+  </div></div></section>
+
+  <div class="manual-actions"><label class="field-block note-field">Duplicate exception note<input name="duplicate_ack_note" value="{{ duplicate_ack_note or '' }}" placeholder="Only needed if this receipt is genuinely different"></label><button class="button" type="submit">Review claim</button></div>
+</form>
+{% endblock %}

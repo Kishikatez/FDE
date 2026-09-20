@@ -29,15 +29,15 @@ _Functions, classes, and exports with call relationships._
 | `sign_in` | function | `def sign_in(request)` | `app/main.py` |
 | `sign_in_submit` | function | `def sign_in_submit(request, user_id, password, csrf_token)` | `app/main.py` |
 | `sign_out` | function | `def sign_out(request, csrf_token)` | `app/main.py` |
-| `dashboard` | function | `def dashboard(request)` | `app/main.py` |
+| `dashboard` | function | `def dashboard(request, view)` | `app/main.py` |
 | `new_claim` | function | `def new_claim(request)` | `app/main.py` |
+| `new_claim_submit` | function | `def new_claim_submit(request, files, csrf_token)` | `app/main.py` |
 | `parse_batch` | function | `def parse_batch(request, files, csrf_token)` | `app/main.py` |
 | `admin_employees` | function | `def admin_employees(request)` | `app/main.py` |
 | `enroll_employee` | function | `def enroll_employee(request, name, email, designation)` | `app/main.py` |
 | `employee_detail` | function | `def employee_detail(request, employee_id)` | `app/main.py` |
-| `edit_employee_form` | function | `def edit_employee_form(request, employee_id)` | `app/main.py` |
 
-_+10 more symbols_
+_+14 more symbols_
 
 ### `app/db.py`
 
@@ -181,7 +181,6 @@ _Naming patterns and styles. Follow these for consistency._
 | Pattern | Example | Count |
 |---------|---------|-------|
 | snake_case | `__init__.py` | 7 |
-| PascalCase | `README.md` | 1 |
 
 **Use:** snake_case for new files.
 
@@ -191,4 +190,4 @@ _Naming patterns and styles. Follow these for consistency._
 - `delete_*` → `delete_employee` (1 occurrences)
 
 
-_Generated: 2026-09-19T09:39:19.417Z_
+_Generated: 2026-09-20T17:03:42.070Z_

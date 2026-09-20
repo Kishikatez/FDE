@@ -50,11 +50,13 @@ def _require_actor_can_transition(
 	"""Enforce role and ownership rules for state-changing actions."""
 
 	if target in {ClaimStatus.APPROVED, ClaimStatus.REJECTED}:
-		if actor.role != UserRole.MANAGER:
-			raise ClaimTransitionError("only a manager can review claims")
-		if actor.id != claim.approver_id:
+		if actor.role == UserRole.FINANCE and target != ClaimStatus.APPROVED:
+			raise ClaimTransitionError("finance can only approve manager claims")
+		if actor.role not in {UserRole.MANAGER, UserRole.FINANCE}:
+			raise ClaimTransitionError("only a manager or finance can review claims")
+		if actor.role == UserRole.MANAGER and actor.id != claim.approver_id:
 			raise ClaimTransitionError("you are not the assigned approver")
-		if actor.id == claim.claimant_id:
+		if actor.role == UserRole.MANAGER and actor.id == claim.claimant_id:
 			raise ClaimTransitionError("a manager cannot approve their own claim")
 	elif target in {ClaimStatus.SUBMITTED, ClaimStatus.DRAFT}:
 		if actor.id != claim.claimant_id:

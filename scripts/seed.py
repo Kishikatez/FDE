@@ -56,28 +56,24 @@ def seed() -> None:
     ensure_indexes()
     users = users_collection()
     claims = claims_collection()
-    current_employees = list(users.find({"role": {"$ne": UserRole.ADMIN.value}}).sort("name", 1))
-    for serial, employee in enumerate(current_employees, start=1):
-        prefix = employee["name"].strip().split()[0].lower()
-        prefix = "".join(character for character in prefix if character.isalnum()) or "employee"
-        users.update_one({"_id": employee["_id"]}, {"$set": {"employee_id": f"{prefix}{serial:03d}"}})
+    legacy_ids: dict[str, str] = {}
     for user_id, name, email, role, manager_id, limit in [*USERS, ADMIN]:
         designation = "Administrator" if role == UserRole.ADMIN else "Employee"
         password = "Admin@12345" if role == UserRole.ADMIN else "Welcome@123"
-        existing = users.find_one({"_id": user_id})
-        generated_id = existing.get("employee_id") if existing else None
-        if not generated_id and role != UserRole.ADMIN:
-            generated_id = next_employee_id(name, users)
-        user = User(id=user_id, employee_id=generated_id, name=name, email=email, role=role, designation=designation, manager_id=manager_id, monthly_limit_paise=limit, password_hash=hash_password(password))
-        if users.find_one({"_id": user_id}):
+        existing = users.find_one({"email": email}) or users.find_one({"_id": user_id})
+        generated_id = str(existing["_id"]) if existing else (user_id if role == UserRole.ADMIN else next_employee_id(name, users))
+        legacy_ids[user_id] = generated_id
+        permanent_manager_id = legacy_ids.get(manager_id) if manager_id else None
+        user = User(id=generated_id, name=name, email=email, role=role, designation=designation, manager_id=permanent_manager_id, monthly_limit_paise=limit, password_hash=hash_password(password))
+        if existing:
             users.update_one(
-                {"_id": user_id},
-                {"$set": {"designation": designation, "employee_id": generated_id}, "$setOnInsert": {"password_hash": user.password_hash}},
+                {"_id": existing["_id"]},
+                {"$set": {"designation": designation, "manager_id": permanent_manager_id}, "$setOnInsert": {"password_hash": user.password_hash}},
             )
-            if not users.find_one({"_id": user_id, "password_hash": {"$exists": True}}):
-                users.update_one({"_id": user_id}, {"$set": {"password_hash": user.password_hash}})
+            if not users.find_one({"_id": existing["_id"], "password_hash": {"$exists": True}}):
+                users.update_one({"_id": existing["_id"]}, {"$set": {"password_hash": user.password_hash}})
         else:
-            users.insert_one({"_id": user_id, **user.model_dump(exclude={"id"})})
+            users.insert_one({"_id": generated_id, **user.model_dump(exclude={"id"})})
 
     if claims.count_documents({}):
         print("Seed skipped: demo users upgraded; claims already exist")
@@ -89,8 +85,8 @@ def seed() -> None:
         amount += index * 100
         claimant_id = list(users.find({"role": "staff"}, {"_id": 1}))[index % 5]["_id"]
         if index == 39:
-            claimant_id = "manager-west"
-            approver_id = "senior-manager"
+            claimant_id = legacy_ids["manager-west"]
+            approver_id = legacy_ids["senior-manager"]
         else:
             approver_id = users.find_one({"_id": claimant_id})["manager_id"]
         claim_id = claims.insert_one({

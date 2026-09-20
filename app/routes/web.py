@@ -3,6 +3,7 @@
 import csv
 import io
 from datetime import date, datetime, timezone
+from decimal import Decimal
 from typing import Any
 
 from bson import ObjectId
@@ -11,7 +12,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 
 from app.db import claims_collection, users_collection
-from app.models import ClaimCategory, ClaimStatus, User, UserRole
+from app.models import ClaimCategory, ClaimDraft, ClaimStatus, User, UserRole
 from app.services.claims import ClaimTransitionError, transition
 from app.services.auth import hash_password, verify_password
 from app.services.employees import next_employee_id
@@ -98,9 +99,7 @@ def sign_in(request: Request) -> HTMLResponse:
 @router.post("/sign-in")
 def sign_in_submit(request: Request, user_id: str = Form(...), password: str = Form(...), csrf_token: str = Form(...)) -> RedirectResponse:
     _check_csrf(request, csrf_token)
-    person = users_collection().find_one(
-        {"$or": [{"_id": user_id}, {"employee_id": user_id}], "active": True}
-    )
+    person = users_collection().find_one({"_id": user_id, "active": True})
     if not person or not verify_password(password, person.get("password_hash")):
         return RedirectResponse("/sign-in?error=invalid", status_code=303)
     request.session["user_id"] = str(person["_id"])
@@ -115,40 +114,59 @@ def sign_out(request: Request, csrf_token: str = Form(...)) -> RedirectResponse:
 
 
 @router.get("/dashboard", response_class=HTMLResponse)
-def dashboard(request: Request) -> HTMLResponse:
+def dashboard(request: Request, view: str = "claims") -> HTMLResponse:
     user = _require_user(request)
+    manager_claims = []
     if user.role == UserRole.STAFF:
         query = {"claimant_id": user.id}
     elif user.role == UserRole.MANAGER:
         query = {"$or": [{"claimant_id": user.id}, {"approver_id": user.id}]}
     elif user.role == UserRole.FINANCE:
+        manager_ids = [str(document["_id"]) for document in users_collection().find({"role": UserRole.MANAGER.value, "active": True}, {"_id": 1})]
+        manager_claims = list(claims_collection().find({"claimant_id": {"$in": manager_ids}, "status": "submitted"}).sort("expense_date", -1).limit(100))
         query = {"status": {"$in": ["approved", "paid"]}}
     else:
         query = {}
     claims = list(claims_collection().find(query).sort("expense_date", -1).limit(100))
-    return _render(request, "dashboard.html", claims=claims, role=user.role.value)
+    return _render(request, "dashboard.html", claims=claims, manager_claims=manager_claims, view=view, role=user.role.value)
 
 
 @router.get("/claims/new", response_class=HTMLResponse)
 def new_claim(request: Request) -> HTMLResponse:
-    _require_user(request)
-    return _render(request, "claim_intake.html")
+    user = _require_user(request)
+    error = "This receipt may already exist. Add an exception note if it is genuinely different." if request.query_params.get("duplicate") else None
+    return _render(request, "claim_intake.html", user_profile=user, draft=None, receipt_text="", categories=list(ClaimCategory), error=error)
+
+
+@router.post("/claims/new", response_class=HTMLResponse)
+async def new_claim_submit(request: Request, files: list[UploadFile] | None = File(default=None), csrf_token: str = Form(...)) -> HTMLResponse:
+    user = _require_user(request)
+    _check_csrf(request, csrf_token)
+    draft = None
+    receipt_text = ""
+    error = None
+    upload = next((item for item in (files or []) if item.filename), None)
+    if upload:
+        filename = upload.filename or "receipt"
+        try:
+            receipt_text = extract_receipt_text(filename, await upload.read())
+            draft = parse_receipt(receipt_text)
+        except (ReceiptFileError, ReceiptParseError) as exc:
+            error = str(exc)
+    return _render(
+        request,
+        "claim_intake.html",
+        user_profile=user,
+        draft=draft,
+        receipt_text=receipt_text,
+        error=error,
+        categories=list(ClaimCategory),
+    )
 
 
 @router.post("/claims/parse-batch", response_class=HTMLResponse)
 async def parse_batch(request: Request, files: list[UploadFile] = File(...), csrf_token: str = Form(...)) -> HTMLResponse:
-    user = _require_user(request)
-    _check_csrf(request, csrf_token)
-    rows = []
-    for upload in files:
-        filename = upload.filename or "receipt"
-        try:
-            text = extract_receipt_text(filename, await upload.read())
-            draft = parse_receipt(text)
-            rows.append({"filename": filename, "raw_text": text, "draft": draft, "error": None})
-        except (ReceiptFileError, ReceiptParseError) as exc:
-            rows.append({"filename": filename, "raw_text": "", "draft": None, "error": str(exc)})
-    return _render(request, "claim_batch_review.html", rows=rows, categories=list(ClaimCategory))
+    return await new_claim_submit(request, files=files, csrf_token=csrf_token)
 
 
 @router.get("/admin/employees", response_class=HTMLResponse)
@@ -344,18 +362,60 @@ def submit_batch(
 
 
 @router.post("/claims/submit")
-def submit_claim(request: Request, merchant: str = Form(...), amount_paise: int = Form(...), expense_date: date = Form(...), category: ClaimCategory = Form(...), receipt_no: str = Form(""), receipt_text: str = Form(...), csrf_token: str = Form(...), duplicate_ack_note: str = Form("")) -> RedirectResponse:
+def submit_claim(request: Request, merchant: str = Form(...), amount_rupees: Decimal = Form(...), expense_date: date = Form(...), category: ClaimCategory = Form(...), receipt_no: str = Form(""), receipt_text: str = Form(...), csrf_token: str = Form(...), duplicate_ack_note: str = Form("")) -> RedirectResponse:
     user = _require_user(request)
     _check_csrf(request, csrf_token)
+    amount_paise = int(amount_rupees * 100)
+    if amount_paise <= 0:
+        raise ValueError("amount must be greater than zero")
+    stored_receipt_text = receipt_text.strip() or f"Manual entry for {merchant.strip()}"
     claim_data = {"merchant": merchant, "amount_paise": amount_paise, "expense_date": expense_date, "claimant_id": user.id, "receipt_no": receipt_no or None}
     match = find_duplicate(claim_data, claims_collection())
     if match and match.strength != "weak" and not duplicate_ack_note.strip():
         return RedirectResponse("/claims/new?duplicate=1", status_code=303)
     approver_id = user.manager_id or "head-operations"
-    document = {"claimant_id": user.id, "approver_id": approver_id, "merchant": merchant, "category": category.value, "amount_paise": amount_paise, "currency": "INR", "expense_date": datetime.combine(expense_date, datetime.min.time(), tzinfo=timezone.utc), "receipt_no": receipt_no or None, "raw_text": receipt_text[:20_000], "source": "text", "fingerprint": fingerprint(merchant, amount_paise, expense_date), "duplicate_of": match.claim_id if match else None, "duplicate_reason": match.reason if match else None, "duplicate_ack_note": duplicate_ack_note.strip() or None, "status": "draft", "status_history": [], "created_at": datetime.now(timezone.utc)}
+    claim_fingerprint = fingerprint(merchant, amount_paise, expense_date)
+    if match and duplicate_ack_note.strip():
+        claim_fingerprint += f"|exception:{ObjectId()}"
+    document = {"claimant_id": user.id, "approver_id": approver_id, "merchant": merchant, "category": category.value, "amount_paise": amount_paise, "currency": "INR", "expense_date": datetime.combine(expense_date, datetime.min.time(), tzinfo=timezone.utc), "receipt_no": receipt_no or None, "raw_text": stored_receipt_text[:20_000], "source": "text", "fingerprint": claim_fingerprint, "duplicate_of": match.claim_id if match else None, "duplicate_reason": match.reason if match else None, "duplicate_ack_note": duplicate_ack_note.strip() or None, "status": "draft", "status_history": [], "created_at": datetime.now(timezone.utc)}
     result = claims_collection().insert_one(document)
     transition(str(result.inserted_id), user, ClaimStatus.SUBMITTED, claims_collection())
     return RedirectResponse("/dashboard", status_code=303)
+
+
+@router.post("/claims/confirm", response_class=HTMLResponse)
+def confirm_claim(
+    request: Request,
+    merchant: str = Form(...),
+    amount_rupees: Decimal = Form(...),
+    expense_date: date = Form(...),
+    category: ClaimCategory = Form(...),
+    receipt_no: str = Form(""),
+    receipt_text: str = Form(""),
+    duplicate_ack_note: str = Form(""),
+    csrf_token: str = Form(...),
+) -> HTMLResponse:
+    user = _require_user(request)
+    _check_csrf(request, csrf_token)
+    return _render(request, "claim_confirmation.html", user_profile=user, merchant=merchant, amount_rupees=amount_rupees, expense_date=expense_date, category=category, receipt_no=receipt_no, receipt_text=receipt_text, duplicate_ack_note=duplicate_ack_note)
+
+
+@router.post("/claims/edit", response_class=HTMLResponse)
+def edit_claim(
+    request: Request,
+    merchant: str = Form(...),
+    amount_rupees: Decimal = Form(...),
+    expense_date: date = Form(...),
+    category: ClaimCategory = Form(...),
+    receipt_no: str = Form(""),
+    receipt_text: str = Form(""),
+    duplicate_ack_note: str = Form(""),
+    csrf_token: str = Form(...),
+) -> HTMLResponse:
+    user = _require_user(request)
+    _check_csrf(request, csrf_token)
+    draft = ClaimDraft(merchant=merchant, amount_paise=int(amount_rupees * 100), expense_date=expense_date, category=category, receipt_no=receipt_no or None)
+    return _render(request, "claim_intake.html", user_profile=user, draft=draft, receipt_text=receipt_text, duplicate_ack_note=duplicate_ack_note, categories=list(ClaimCategory))
 
 
 @router.post("/claims/{claim_id}/approve")
@@ -366,6 +426,20 @@ def approve_claim(request: Request, claim_id: str, csrf_token: str = Form(...)) 
         raise PermissionError("manager access required")
     transition(claim_id, user, ClaimStatus.APPROVED, claims_collection())
     return RedirectResponse("/dashboard", status_code=303)
+
+
+@router.post("/claims/{claim_id}/finance-approve")
+def finance_approve_claim(request: Request, claim_id: str, csrf_token: str = Form(...)) -> RedirectResponse:
+    user = _require_user(request)
+    _check_csrf(request, csrf_token)
+    if user.role != UserRole.FINANCE:
+        raise PermissionError("finance access required")
+    claim = claims_collection().find_one({"_id": ObjectId(claim_id)})
+    claimant = users_collection().find_one({"_id": claim.get("claimant_id") if claim else None, "role": UserRole.MANAGER.value, "active": True})
+    if not claim or not claimant:
+        raise PermissionError("finance approval is only available for manager claims")
+    transition(claim_id, user, ClaimStatus.APPROVED, claims_collection())
+    return RedirectResponse("/dashboard?view=manager", status_code=303)
 
 
 @router.post("/claims/{claim_id}/reject")

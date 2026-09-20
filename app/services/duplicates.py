@@ -3,7 +3,7 @@
 import re
 import string
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 from rapidfuzz.fuzz import token_set_ratio
@@ -33,6 +33,8 @@ def normalise_merchant(merchant: str) -> str:
 
 
 def _as_date(value: Any) -> date:
+	if isinstance(value, datetime):
+		return value.date()
 	if isinstance(value, date):
 		return value
 	return date.fromisoformat(str(value)[:10])

@@ -43,7 +43,8 @@ def migrate_employee_ids(users: Any, claims: Any) -> dict[str, str]:
             continue
         replacement = {key: value for key, value in employee.items() if key not in {"_id", "employee_id"}}
         replacement["_id"] = new_id
-        users.replace_one({"_id": new_id}, replacement, upsert=True)
+        users.delete_one({"_id": old_id})
+        users.insert_one(replacement)
 
     for old_id, new_id in mapping.items():
         users.update_many({"manager_id": old_id}, {"$set": {"manager_id": new_id}})
