@@ -47,7 +47,7 @@ _Most central modules by connectivity. Changes here propagate widely._
 | `app/config.py` | 3 | 0 |
 | `app/services/employees.py` | 3 | 0 |
 | `scripts/seed.py` | 0 | 6 |
-| `app/services/duplicates.py` | 2 | 1 |
+| `app/main.py` | 1 | 3 |
 
 ## Dependency Chains
 
@@ -55,22 +55,22 @@ _Top data/call flow paths. Shows how changes propagate through the codebase._
 
 **Chain 1** (3 modules):
 ```
-app/routes/web.py → app/db.py → app/config.py
+api/index.py → app/main.py → app/config.py
 ```
 
 **Chain 2** (3 modules):
 ```
-scripts/init_db.py → app/db.py → app/config.py
+app/routes/web.py → app/db.py → app/config.py
 ```
 
 **Chain 3** (3 modules):
 ```
-scripts/migrate_employee_ids.py → app/db.py → app/config.py
+scripts/init_db.py → app/db.py → app/config.py
 ```
 
 **Chain 4** (3 modules):
 ```
-scripts/seed.py → app/db.py → app/config.py
+scripts/migrate_employee_ids.py → app/db.py → app/config.py
 ```
 
 ## Request Flow Pattern
@@ -96,4 +96,4 @@ Models (data) → Services (logic) → Handlers (HTTP) → Response
 → Check External Integrations.
 
 
-_Generated: 2026-09-20T17:11:18.596Z_
+_Generated: 2026-09-20T17:47:15.548Z_

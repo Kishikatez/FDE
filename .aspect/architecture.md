@@ -2,7 +2,7 @@
 
 _Read this first. Describes the project layout and "Do Not Break" zones._
 
-**Files:** 23 | **Dependencies:** 34 | **Cycles:** 0
+**Files:** 24 | **Dependencies:** 35 | **Cycles:** 0
 
 ## ⚠️ High-Risk Architectural Hubs
 
@@ -16,20 +16,20 @@ _Read this first. Describes the project layout and "Do Not Break" zones._
 | 3 | `app/db.py` | 1 | 5 | 🟡 Medium |
 | 4 | `scripts/seed.py` | 6 | 0 | 🟢 Low |
 | 5 | `app/services/claims.py` | 1 | 3 | 🟢 Low |
-| 6 | `app/services/duplicates.py` | 1 | 2 | 🟢 Low |
-| 7 | `app/services/parsing.py` | 2 | 1 | 🟢 Low |
-| 8 | `app/services/payouts.py` | 2 | 1 | 🟢 Low |
-| 9 | `app/config.py` | 0 | 3 | 🟢 Low |
-| 10 | `app/main.py` | 3 | 0 | 🟢 Low |
+| 6 | `app/main.py` | 3 | 1 | 🟢 Low |
+| 7 | `app/services/duplicates.py` | 1 | 2 | 🟢 Low |
+| 8 | `app/services/parsing.py` | 2 | 1 | 🟢 Low |
+| 9 | `app/services/payouts.py` | 2 | 1 | 🟢 Low |
+| 10 | `app/config.py` | 0 | 3 | 🟢 Low |
 | 11 | `app/services/employees.py` | 0 | 3 | 🟢 Low |
 
 ### Hub Details & Blast Radius
 
 _Blast radius = direct dependents + their dependents (2 levels)._
 
-**1. `app/routes/web.py`** — Blast radius: 1 files
+**1. `app/routes/web.py`** — Blast radius: 2 files
    - Direct dependents: 1
-   - Indirect dependents: ~0
+   - Indirect dependents: ~1
 
    Imported by (1 files):
    - `app/main.py`
@@ -46,9 +46,9 @@ _Blast radius = direct dependents + their dependents (2 levels)._
    - `app/services/payouts.py`
    - _...and 1 more_
 
-**3. `app/db.py`** — Blast radius: 6 files
+**3. `app/db.py`** — Blast radius: 7 files
    - Direct dependents: 5
-   - Indirect dependents: ~1
+   - Indirect dependents: ~2
 
    Imported by (5 files):
    - `app/main.py`
@@ -90,4 +90,4 @@ _CLI tools, build scripts, standalone utilities._
 **Test files:** 3 | **Dirs:** tests
 
 
-_Generated: 2026-09-20T17:11:18.563Z_
+_Generated: 2026-09-20T17:47:15.409Z_

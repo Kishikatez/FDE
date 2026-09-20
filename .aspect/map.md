@@ -101,20 +101,20 @@ _+14 more symbols_
 |--------|------|-----------|----------------|
 | `seed` | function | `def seed()` | — |
 
+### `app/main.py`
+
+| Symbol | Kind | Signature | Used In (files) |
+|--------|------|-----------|----------------|
+| `initialize_database` | function | `def initialize_database()` | `api/index.py` |
+| `permission_error` | function | `def permission_error(request, exc)` | `api/index.py` |
+| `healthz` | function | `def healthz()` | `api/index.py` |
+
 ### `app/services/auth.py`
 
 | Symbol | Kind | Signature | Used In (files) |
 |--------|------|-----------|----------------|
 | `hash_password` | function | `def hash_password(password)` | `routes/web.py`, `scripts/seed.py` |
 | `verify_password` | function | `def verify_password(password, encoded)` | `routes/web.py`, `scripts/seed.py` |
-
-### `app/main.py`
-
-| Symbol | Kind | Signature | Used In (files) |
-|--------|------|-----------|----------------|
-| `initialize_database` | function | `def initialize_database()` | — |
-| `permission_error` | function | `def permission_error(request, exc)` | — |
-| `healthz` | function | `def healthz()` | — |
 
 ### `app/services/receipt_files.py`
 
@@ -190,4 +190,4 @@ _Naming patterns and styles. Follow these for consistency._
 - `delete_*` → `delete_employee` (1 occurrences)
 
 
-_Generated: 2026-09-20T17:11:18.614Z_
+_Generated: 2026-09-20T17:47:15.900Z_

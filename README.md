@@ -1,3 +1,12 @@
+---
+title: Expense Claims
+emoji: 💸
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_port: 7860
+---
+
 # Expense Claims
 
 Expense Claims is a small web application for recording, reviewing, approving, and paying employee expenses.
@@ -159,6 +168,16 @@ On a small free hosting plan, local Tesseract may not be installed. Manual entry
 7. Run `python scripts/init_db.py` and `python scripts/seed.py` once with the same environment variables.
 
 The free Render service can sleep. The first request after inactivity may take several seconds. Use private networking, restricted database access, stronger authentication, and persistent receipt storage for production.
+
+## Deploy On Vercel
+
+1. Push this repository to GitHub, including `api/index.py` and `vercel.json`.
+2. Import the repository at <https://vercel.com/new>.
+3. Keep the detected Python settings and deploy without a build command.
+4. Add `MONGODB_URI`, `MONGODB_DB`, `SECRET_KEY`, and `APP_ENV=production` under Project Settings > Environment Variables.
+5. Redeploy and check `/healthz` on the Vercel URL.
+
+Vercel runs this application as a serverless FastAPI function. MongoDB Atlas is still required, and uploaded files are temporary. Image OCR may not work because the Vercel runtime does not include the system Tesseract executable.
 
 ## Test And Check
 
