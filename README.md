@@ -1,12 +1,3 @@
----
-title: Expense Claims
-emoji: 💸
-colorFrom: blue
-colorTo: green
-sdk: docker
-app_port: 7860
----
-
 # Expense Claims
 
 Expense Claims is a small web application for recording, reviewing, approving, and paying employee expenses.
