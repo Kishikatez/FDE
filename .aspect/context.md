@@ -96,4 +96,4 @@ Models (data) → Services (logic) → Handlers (HTTP) → Response
 → Check External Integrations.
 
 
-_Generated: 2026-09-20T17:47:15.548Z_
+_Generated: 2026-09-20T17:48:56.556Z_
