@@ -190,4 +190,4 @@ _Naming patterns and styles. Follow these for consistency._
 - `delete_*` → `delete_employee` (1 occurrences)
 
 
-_Generated: 2026-09-20T17:03:42.070Z_
+_Generated: 2026-09-20T17:11:18.614Z_

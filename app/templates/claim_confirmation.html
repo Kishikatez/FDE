@@ -19,6 +19,7 @@
     <div><dt>Receipt number</dt><dd>{{ receipt_no or 'Not provided' }}</dd></div>
     <div><dt>Employee</dt><dd>{{ user_profile.name }} · {{ user_profile.id }}</dd></div>
   </dl>
-  <div class="confirmation-actions"><form method="post" action="/claims/edit"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="merchant" value="{{ merchant }}"><input type="hidden" name="amount_rupees" value="{{ amount_rupees }}"><input type="hidden" name="expense_date" value="{{ expense_date }}"><input type="hidden" name="category" value="{{ category.value }}"><input type="hidden" name="receipt_no" value="{{ receipt_no }}"><input type="hidden" name="receipt_text" value="{{ receipt_text }}"><input type="hidden" name="duplicate_ack_note" value="{{ duplicate_ack_note }}"><button class="button" type="submit">Edit claim</button></form><button class="button" type="submit">Confirm and send to manager</button></div>
+  <div class="confirmation-actions"><button class="button" type="submit">Confirm and send to manager</button></div>
 </form>
+<form method="post" action="/claims/edit" class="confirmation-edit-form"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="merchant" value="{{ merchant }}"><input type="hidden" name="amount_rupees" value="{{ amount_rupees }}"><input type="hidden" name="expense_date" value="{{ expense_date }}"><input type="hidden" name="category" value="{{ category.value }}"><input type="hidden" name="receipt_no" value="{{ receipt_no }}"><input type="hidden" name="receipt_text" value="{{ receipt_text }}"><input type="hidden" name="duplicate_ack_note" value="{{ duplicate_ack_note }}"><button class="button" type="submit">Edit claim</button></form>
 {% endblock %}

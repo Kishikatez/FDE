@@ -52,6 +52,7 @@ def _current_user(request: Request) -> User | None:
     if not document:
         return None
     document["id"] = str(document.pop("_id"))
+    document.pop("employee_id", None)
     return User.model_validate(document)
 
 

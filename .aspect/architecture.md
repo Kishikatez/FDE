@@ -90,4 +90,4 @@ _CLI tools, build scripts, standalone utilities._
 **Test files:** 3 | **Dirs:** tests
 
 
-_Generated: 2026-09-20T17:03:42.004Z_
+_Generated: 2026-09-20T17:11:18.563Z_
